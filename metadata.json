@@ -1,0 +1,6 @@
+{
+  "name": "Love Moments",
+  "description": "Interactive 3D birthday experiences platform with Arabic RTL and English LTR support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

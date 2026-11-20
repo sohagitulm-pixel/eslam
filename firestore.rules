@@ -1,0 +1,391 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'sohag.itulm@gmail.com'
+      );
+    }
+
+    // --- Validation Blueprints ---
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'language', 'role', 'storageUsedBytes', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'language', 'role', 'storageUsedBytes', 'createdAt', 'updatedAt']) &&
+        isValidId(data.uid) &&
+        data.email is string && data.email.size() <= 320 &&
+        data.displayName is string && data.displayName.size() <= 120 &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 2048)) &&
+        data.language in ['en', 'ar'] &&
+        data.role in ['user', 'admin'] &&
+        data.storageUsedBytes is number && data.storageUsedBytes >= 0 && data.storageUsedBytes <= 104857600 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidTemplate(data) {
+      return data.keys().hasAll(['id', 'nameEn', 'nameAr', 'category', 'active', 'palette', 'effectsConfig']) &&
+        data.keys().hasOnly(['id', 'nameEn', 'nameAr', 'category', 'active', 'featured', 'palette', 'effectsConfig', 'createdAt']) &&
+        isValidId(data.id) &&
+        data.nameEn is string && data.nameEn.size() >= 1 && data.nameEn.size() <= 120 &&
+        data.nameAr is string && data.nameAr.size() >= 1 && data.nameAr.size() <= 120 &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 64 &&
+        data.active is bool &&
+        (!('featured' in data) || data.featured is bool) &&
+        data.palette is map &&
+        data.effectsConfig is map;
+    }
+
+    function isValidExperience(data) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'title', 'recipientName', 'language',
+          'templateId', 'visibility', 'published', 'viewCount', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'ownerId', 'title', 'recipientName', 'recipientAge', 'relationship',
+          'birthdayDate', 'language', 'templateId', 'visibility', 'published',
+          'passcodeEnabled', 'passcodeHash', 'passcodeHint', 'moderationRequired',
+          'viewCount', 'reportCount', 'coverImage', 'themeConfig', 'effectsConfig',
+          'audioConfig', 'sections', 'memories', 'gifts', 'scratchCards',
+          'quiz', 'wheel', 'puzzle', 'futureLetterMeta', 'finalMessage',
+          'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerId) &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 160 &&
+        data.recipientName is string && data.recipientName.size() >= 1 && data.recipientName.size() <= 100 &&
+        (!('recipientAge' in data) || (data.recipientAge is string && data.recipientAge.size() <= 16)) &&
+        (!('relationship' in data) || (data.relationship is string && data.relationship.size() <= 64)) &&
+        (!('birthdayDate' in data) || (data.birthdayDate is string && data.birthdayDate.size() <= 32)) &&
+        data.language in ['en', 'ar'] &&
+        data.templateId is string && data.templateId.size() >= 1 && data.templateId.size() <= 128 &&
+        data.visibility in ['public', 'unlisted', 'private'] &&
+        data.published is bool &&
+        (!('passcodeEnabled' in data) || data.passcodeEnabled is bool) &&
+        (!('passcodeHash' in data) || (data.passcodeHash is string && data.passcodeHash.size() <= 128)) &&
+        (!('passcodeHint' in data) || (data.passcodeHint is string && data.passcodeHint.size() <= 120)) &&
+        (!('moderationRequired' in data) || data.moderationRequired is bool) &&
+        data.viewCount is number && data.viewCount >= 0 &&
+        (!('reportCount' in data) || (data.reportCount is number && data.reportCount >= 0)) &&
+        (!('coverImage' in data) || (data.coverImage is string && data.coverImage.size() <= 600000)) &&
+        (!('themeConfig' in data) || data.themeConfig is map) &&
+        (!('effectsConfig' in data) || data.effectsConfig is map) &&
+        (!('audioConfig' in data) || data.audioConfig is map) &&
+        (!('sections' in data) || (data.sections is list && data.sections.size() <= 20)) &&
+        (!('memories' in data) || (data.memories is list && data.memories.size() <= 15)) &&
+        (!('gifts' in data) || (data.gifts is list && data.gifts.size() <= 10)) &&
+        (!('scratchCards' in data) || (data.scratchCards is list && data.scratchCards.size() <= 8)) &&
+        (!('quiz' in data) || data.quiz is map) &&
+        (!('wheel' in data) || data.wheel is map) &&
+        (!('puzzle' in data) || data.puzzle is map) &&
+        (!('futureLetterMeta' in data) || data.futureLetterMeta is map) &&
+        (!('finalMessage' in data) || data.finalMessage is map) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidFutureLetter(data) {
+      return data.keys().hasAll(['experienceId', 'ownerId', 'unlockAt', 'message', 'senderName', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['experienceId', 'ownerId', 'unlockAt', 'message', 'senderName', 'photoUrl', 'audioUrl', 'createdAt', 'updatedAt']) &&
+        isValidId(data.experienceId) &&
+        isValidId(data.ownerId) &&
+        data.unlockAt is timestamp &&
+        data.message is string && data.message.size() <= 5000 &&
+        data.senderName is string && data.senderName.size() <= 100 &&
+        (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 600000)) &&
+        (!('audioUrl' in data) || (data.audioUrl is string && data.audioUrl.size() <= 600000)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidWish(data) {
+      return data.keys().hasAll(['id', 'experienceId', 'ownerId', 'authorName', 'isAnonymous', 'type', 'message', 'status', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'experienceId', 'ownerId', 'authorName', 'isAnonymous', 'type', 'message', 'mediaUrl', 'status', 'leafColor', 'createdAt']) &&
+        isValidId(data.id) &&
+        isValidId(data.experienceId) &&
+        isValidId(data.ownerId) &&
+        data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80 &&
+        data.isAnonymous is bool &&
+        data.type in ['wish', 'text', 'audio', 'video'] &&
+        data.message is string && data.message.size() >= 1 && data.message.size() <= 1200 &&
+        (!('mediaUrl' in data) || (data.mediaUrl is string && data.mediaUrl.size() <= 600000)) &&
+        data.status in ['pending', 'approved', 'rejected'] &&
+        (!('leafColor' in data) || (data.leafColor is string && data.leafColor.size() <= 32)) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidView(data) {
+      return data.keys().hasAll(['experienceId', 'ownerId', 'locale', 'viewedAt']) &&
+        data.keys().hasOnly(['experienceId', 'ownerId', 'locale', 'viewedAt']) &&
+        isValidId(data.experienceId) &&
+        isValidId(data.ownerId) &&
+        data.locale in ['en', 'ar'] &&
+        data.viewedAt is timestamp;
+    }
+
+    function isValidReport(data) {
+      return data.keys().hasAll(['experienceId', 'experienceTitle', 'reason', 'status', 'createdAt']) &&
+        data.keys().hasOnly(['experienceId', 'experienceTitle', 'reason', 'reporterUid', 'status', 'createdAt']) &&
+        isValidId(data.experienceId) &&
+        data.experienceTitle is string && data.experienceTitle.size() >= 1 && data.experienceTitle.size() <= 160 &&
+        data.reason is string && data.reason.size() >= 3 && data.reason.size() <= 500 &&
+        (!('reporterUid' in data) || (data.reporterUid is string && data.reporterUid.size() <= 128)) &&
+        data.status in ['open', 'resolved', 'dismissed'] &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidPlatformSettings(data) {
+      return data.keys().hasAll(['maxPhotosPerExperience', 'maxFileSizeMb', 'maxStoragePerUserMb', 'moderationRequiredDefault', 'maintenanceMode', 'updatedAt']) &&
+        data.keys().hasOnly(['maxPhotosPerExperience', 'maxFileSizeMb', 'maxStoragePerUserMb', 'moderationRequiredDefault', 'maintenanceMode', 'updatedAt']) &&
+        data.maxPhotosPerExperience is number && data.maxPhotosPerExperience >= 1 && data.maxPhotosPerExperience <= 50 &&
+        data.maxFileSizeMb is number && data.maxFileSizeMb >= 1 && data.maxFileSizeMb <= 25 &&
+        data.maxStoragePerUserMb is number && data.maxStoragePerUserMb >= 5 && data.maxStoragePerUserMb <= 500 &&
+        data.moderationRequiredDefault is bool &&
+        data.maintenanceMode is bool &&
+        data.updatedAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+
+    // Users (PII isolated to owner or admin)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isAdmin() || (isSignedIn() && request.auth.uid == userId));
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) &&
+        isVerifiedUser() &&
+        request.auth.uid == userId &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == userId &&
+        incoming().role == 'user' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) &&
+        isVerifiedUser() &&
+        isValidUserProfile(incoming()) && (
+          isAdmin() || (
+            request.auth.uid == userId &&
+            incoming().uid == existing().uid &&
+            incoming().role == existing().role &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().updatedAt == request.time &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'language', 'storageUsedBytes', 'updatedAt'])
+          )
+        );
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // Templates (Publicly readable, Admin writable)
+    match /templates/{templateId} {
+      allow get: if isValidId(templateId);
+      allow list: if true;
+      allow create: if isValidId(templateId) && isAdmin() && isValidTemplate(incoming());
+      allow update: if isValidId(templateId) && isAdmin() && isValidTemplate(incoming());
+      allow delete: if isValidId(templateId) && isAdmin();
+    }
+
+    // Birthday Experiences
+    match /experiences/{experienceId} {
+      allow get: if isValidId(experienceId) && (
+        isAdmin() ||
+        (isSignedIn() && existing().ownerId == request.auth.uid) ||
+        (existing().published == true && existing().visibility in ['public', 'unlisted'])
+      );
+      allow list: if isAdmin() ||
+        (isSignedIn() && resource.data.ownerId == request.auth.uid) ||
+        (resource.data.published == true && resource.data.visibility == 'public');
+
+      allow create: if isValidId(experienceId) &&
+        isVerifiedUser() &&
+        isValidExperience(incoming()) &&
+        incoming().id == experienceId &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().viewCount == 0 &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isValidId(experienceId) &&
+        isValidExperience(incoming()) && (
+          isAdmin() ||
+          (
+            isVerifiedUser() &&
+            existing().ownerId == request.auth.uid &&
+            incoming().id == existing().id &&
+            incoming().ownerId == existing().ownerId &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().updatedAt == request.time &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'recipientName', 'recipientAge', 'relationship',
+              'birthdayDate', 'language', 'templateId', 'visibility', 'published',
+              'passcodeEnabled', 'passcodeHash', 'passcodeHint', 'moderationRequired',
+              'coverImage', 'themeConfig', 'effectsConfig', 'audioConfig',
+              'sections', 'memories', 'gifts', 'scratchCards',
+              'quiz', 'wheel', 'puzzle', 'futureLetterMeta', 'finalMessage',
+              'updatedAt'
+            ])
+          ) ||
+          (
+            existing().published == true &&
+            existing().visibility in ['public', 'unlisted'] &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['viewCount']) &&
+            incoming().viewCount == existing().viewCount + 1
+          )
+        );
+
+      allow delete: if isValidId(experienceId) && (
+        isAdmin() || (isVerifiedUser() && existing().ownerId == request.auth.uid)
+      );
+
+      // Server-time enforced Future Letters
+      match /futureLetters/{letterId} {
+        allow get: if isValidId(experienceId) && isValidId(letterId) && (
+          isAdmin() ||
+          (isSignedIn() && existing().ownerId == request.auth.uid) ||
+          (
+            get(/databases/$(database)/documents/experiences/$(experienceId)).data.published == true &&
+            get(/databases/$(database)/documents/experiences/$(experienceId)).data.visibility in ['public', 'unlisted'] &&
+            existing().unlockAt <= request.time
+          )
+        );
+        allow list: if false;
+        allow create: if isValidId(experienceId) && isValidId(letterId) &&
+          isVerifiedUser() &&
+          isValidFutureLetter(incoming()) &&
+          incoming().experienceId == experienceId &&
+          incoming().ownerId == request.auth.uid &&
+          get(/databases/$(database)/documents/experiences/$(experienceId)).data.ownerId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time;
+        allow update: if isValidId(experienceId) && isValidId(letterId) &&
+          isVerifiedUser() &&
+          isValidFutureLetter(incoming()) &&
+          existing().ownerId == request.auth.uid &&
+          incoming().experienceId == existing().experienceId &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['unlockAt', 'message', 'senderName', 'photoUrl', 'audioUrl', 'updatedAt']);
+        allow delete: if isValidId(experienceId) && isValidId(letterId) && (
+          isAdmin() || (isVerifiedUser() && existing().ownerId == request.auth.uid)
+        );
+      }
+
+      // Wishing Tree & Friends/Family Wall Contributions (zero-get list)
+      match /wishes/{wishId} {
+        allow get: if isValidId(experienceId) && isValidId(wishId) && (
+          isAdmin() ||
+          (isSignedIn() && existing().ownerId == request.auth.uid) ||
+          existing().status == 'approved'
+        );
+        allow list: if isAdmin() ||
+          resource.data.status == 'approved' ||
+          (isSignedIn() && resource.data.ownerId == request.auth.uid);
+
+        allow create: if isValidId(experienceId) && isValidId(wishId) &&
+          isValidWish(incoming()) &&
+          incoming().id == wishId &&
+          incoming().experienceId == experienceId &&
+          incoming().createdAt == request.time &&
+          exists(/databases/$(database)/documents/experiences/$(experienceId)) &&
+          get(/databases/$(database)/documents/experiences/$(experienceId)).data.published == true &&
+          incoming().ownerId == get(/databases/$(database)/documents/experiences/$(experienceId)).data.ownerId &&
+          (
+            incoming().status == 'pending' ||
+            (
+              incoming().status == 'approved' &&
+              get(/databases/$(database)/documents/experiences/$(experienceId)).data.moderationRequired == false
+            )
+          );
+
+        allow update: if isValidId(experienceId) && isValidId(wishId) &&
+          isValidWish(incoming()) && (
+            isAdmin() || (
+              isVerifiedUser() &&
+              existing().ownerId == request.auth.uid &&
+              incoming().id == existing().id &&
+              incoming().experienceId == existing().experienceId &&
+              incoming().ownerId == existing().ownerId &&
+              incoming().createdAt == existing().createdAt &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+            )
+          );
+
+        allow delete: if isValidId(experienceId) && isValidId(wishId) && (
+          isAdmin() || (
+            isVerifiedUser() &&
+            existing().ownerId == request.auth.uid
+          )
+        );
+      }
+
+      // Visitor View Logs (zero-get list)
+      match /views/{viewId} {
+        allow get, list: if isAdmin() || (
+          isSignedIn() && resource.data.ownerId == request.auth.uid
+        );
+        allow create: if isValidId(experienceId) && isValidId(viewId) &&
+          isValidView(incoming()) &&
+          incoming().experienceId == experienceId &&
+          incoming().viewedAt == request.time &&
+          exists(/databases/$(database)/documents/experiences/$(experienceId)) &&
+          incoming().ownerId == get(/databases/$(database)/documents/experiences/$(experienceId)).data.ownerId;
+        allow update, delete: if false;
+      }
+    }
+
+    // Content Moderation Reports
+    match /reports/{reportId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(reportId) &&
+        isValidReport(incoming()) &&
+        incoming().status == 'open' &&
+        incoming().createdAt == request.time &&
+        exists(/databases/$(database)/documents/experiences/$(incoming().experienceId));
+      allow update: if isValidId(reportId) &&
+        isAdmin() &&
+        isValidReport(incoming()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      allow delete: if isValidId(reportId) && isAdmin();
+    }
+
+    // Platform Settings
+    match /platformSettings/{settingId} {
+      allow get: if isValidId(settingId);
+      allow list: if isAdmin();
+      allow create, update: if isValidId(settingId) && isAdmin() && isValidPlatformSettings(incoming());
+      allow delete: if false;
+    }
+
+    // Admins Directory
+    match /admins/{uid} {
+      allow get: if isValidId(uid) && (isAdmin() || (isSignedIn() && request.auth.uid == uid));
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+  }
+}

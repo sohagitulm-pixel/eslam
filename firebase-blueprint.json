@@ -1,0 +1,222 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered creator profile and private preferences",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "format": "email", "maxLength": 320 },
+        "displayName": { "type": "string", "maxLength": 120 },
+        "photoURL": { "type": "string", "maxLength": 2048 },
+        "language": { "type": "string", "enum": ["en", "ar"] },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "storageUsedBytes": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "displayName", "language", "role", "storageUsedBytes", "createdAt", "updatedAt"]
+    },
+    "BirthdayTemplate": {
+      "title": "BirthdayTemplate",
+      "description": "Curated birthday-only 3D design template",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "nameEn": { "type": "string", "maxLength": 120 },
+        "nameAr": { "type": "string", "maxLength": 120 },
+        "category": { "type": "string", "maxLength": 64 },
+        "active": { "type": "boolean" },
+        "featured": { "type": "boolean" },
+        "palette": { "type": "object" },
+        "effectsConfig": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "nameEn", "nameAr", "category", "active", "palette", "effectsConfig"]
+    },
+    "BirthdayExperience": {
+      "title": "BirthdayExperience",
+      "description": "Complete interactive 3D birthday celebration page",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "recipientName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "recipientAge": { "type": "string", "maxLength": 16 },
+        "relationship": { "type": "string", "maxLength": 64 },
+        "birthdayDate": { "type": "string", "maxLength": 32 },
+        "language": { "type": "string", "enum": ["en", "ar"] },
+        "templateId": { "type": "string", "maxLength": 128 },
+        "visibility": { "type": "string", "enum": ["public", "unlisted", "private"] },
+        "published": { "type": "boolean" },
+        "passcodeEnabled": { "type": "boolean" },
+        "passcodeHash": { "type": "string", "maxLength": 128 },
+        "passcodeHint": { "type": "string", "maxLength": 120 },
+        "moderationRequired": { "type": "boolean" },
+        "viewCount": { "type": "number" },
+        "reportCount": { "type": "number" },
+        "coverImage": { "type": "string", "maxLength": 600000 },
+        "themeConfig": { "type": "object" },
+        "effectsConfig": { "type": "object" },
+        "audioConfig": { "type": "object" },
+        "sections": { "type": "array" },
+        "memories": { "type": "array" },
+        "gifts": { "type": "array" },
+        "scratchCards": { "type": "array" },
+        "quiz": { "type": "object" },
+        "wheel": { "type": "object" },
+        "puzzle": { "type": "object" },
+        "futureLetterMeta": { "type": "object" },
+        "finalMessage": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "title",
+        "recipientName",
+        "language",
+        "templateId",
+        "visibility",
+        "published",
+        "viewCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FutureLetter": {
+      "title": "FutureLetter",
+      "description": "Time-locked birthday letter unreadable before unlockAt",
+      "type": "object",
+      "properties": {
+        "experienceId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "unlockAt": { "type": "string", "format": "date-time" },
+        "message": { "type": "string", "maxLength": 5000 },
+        "senderName": { "type": "string", "maxLength": 100 },
+        "photoUrl": { "type": "string", "maxLength": 600000 },
+        "audioUrl": { "type": "string", "maxLength": 600000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["experienceId", "ownerId", "unlockAt", "message", "senderName", "createdAt", "updatedAt"]
+    },
+    "BirthdayWish": {
+      "title": "BirthdayWish",
+      "description": "Visitor wish on the 3D Wishing Tree or Friends & Family Wall",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "experienceId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorName": { "type": "string", "maxLength": 80 },
+        "isAnonymous": { "type": "boolean" },
+        "type": { "type": "string", "enum": ["wish", "text", "audio", "video"] },
+        "message": { "type": "string", "minLength": 1, "maxLength": 1200 },
+        "mediaUrl": { "type": "string", "maxLength": 600000 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "leafColor": { "type": "string", "maxLength": 32 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "experienceId", "ownerId", "authorName", "isAnonymous", "type", "message", "status", "createdAt"]
+    },
+    "ExperienceView": {
+      "title": "ExperienceView",
+      "description": "Visitor view analytics entry",
+      "type": "object",
+      "properties": {
+        "experienceId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "ownerId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "locale": { "type": "string", "enum": ["en", "ar"] },
+        "viewedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["experienceId", "ownerId", "locale", "viewedAt"]
+    },
+    "ContentReport": {
+      "title": "ContentReport",
+      "description": "Moderation report submitted for a birthday experience",
+      "type": "object",
+      "properties": {
+        "experienceId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "experienceTitle": { "type": "string", "maxLength": 160 },
+        "reason": { "type": "string", "minLength": 3, "maxLength": 500 },
+        "reporterUid": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["open", "resolved", "dismissed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["experienceId", "experienceTitle", "reason", "status", "createdAt"]
+    },
+    "PlatformSettings": {
+      "title": "PlatformSettings",
+      "description": "Global platform configuration and free-tier upload limits",
+      "type": "object",
+      "properties": {
+        "maxPhotosPerExperience": { "type": "number" },
+        "maxFileSizeMb": { "type": "number" },
+        "maxStoragePerUserMb": { "type": "number" },
+        "moderationRequiredDefault": { "type": "boolean" },
+        "maintenanceMode": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "maxPhotosPerExperience",
+        "maxFileSizeMb",
+        "maxStoragePerUserMb",
+        "moderationRequiredDefault",
+        "maintenanceMode",
+        "updatedAt"
+      ]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Admin role grant record",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 320 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user account profiles and storage counters"
+    },
+    "/templates/{templateId}": {
+      "schema": { "$ref": "#/entities/BirthdayTemplate" },
+      "description": "Birthday-only 3D design templates managed by admins"
+    },
+    "/experiences/{experienceId}": {
+      "schema": { "$ref": "#/entities/BirthdayExperience" },
+      "description": "Birthday experiences created by users"
+    },
+    "/experiences/{experienceId}/futureLetters/{letterId}": {
+      "schema": { "$ref": "#/entities/FutureLetter" },
+      "description": "Server-time locked birthday letters from the future"
+    },
+    "/experiences/{experienceId}/wishes/{wishId}": {
+      "schema": { "$ref": "#/entities/BirthdayWish" },
+      "description": "Wishing Tree notes and Friends & Family wall contributions"
+    },
+    "/experiences/{experienceId}/views/{viewId}": {
+      "schema": { "$ref": "#/entities/ExperienceView" },
+      "description": "Visitor view logs per birthday experience"
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/ContentReport" },
+      "description": "Abuse and moderation reports"
+    },
+    "/platformSettings/{settingId}": {
+      "schema": { "$ref": "#/entities/PlatformSettings" },
+      "description": "Global platform sustainability limits and toggles"
+    },
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Administrator directory"
+    }
+  }
+}
