@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import { BIRTHDAY_TEMPLATES, buildExperienceFromTemplate } from '../data/templates';
 import { saveExperience, saveFutureLetterSecret } from '../services/firestoreService';
 import { Language, RelationshipType } from '../types/birthday';
+import { formatAgeNumber, parseValidAge, sanitizeAgeInput } from '../utils/ageUtils';
 import { compressImageFile } from '../utils/proceduralArt';
 
 export const QuickCreatorPage: React.FC<{ initialTemplateId?: string }> = ({
@@ -48,6 +49,8 @@ export const QuickCreatorPage: React.FC<{ initialTemplateId?: string }> = ({
       return;
     }
 
+    const cleanAge = sanitizeAgeInput(recipientAge);
+
     setSaving(true);
     setErrorMsg(null);
     const tpl = BIRTHDAY_TEMPLATES.find((x) => x.id === templateId) || BIRTHDAY_TEMPLATES[0];
@@ -58,7 +61,7 @@ export const QuickCreatorPage: React.FC<{ initialTemplateId?: string }> = ({
       ownerId: user?.uid || 'guest_draft',
       template: tpl,
       recipientName: recipientName.trim(),
-      recipientAge: recipientAge.trim(),
+      recipientAge: cleanAge,
       relationship,
       birthdayDate,
       language: pageLanguage,
@@ -92,6 +95,8 @@ export const QuickCreatorPage: React.FC<{ initialTemplateId?: string }> = ({
       navigate(`/b/${exp.id}`);
     }
   };
+
+  const validAgePreview = parseValidAge(recipientAge);
 
   return (
     <div className="min-h-screen bg-[#FAF8F6] py-12">
@@ -140,16 +145,28 @@ export const QuickCreatorPage: React.FC<{ initialTemplateId?: string }> = ({
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 mb-1.5">
-                {t.creator.recipientAge}
+                {t.creator.recipientAge} (1–120)
               </label>
               <input
                 type="text"
+                inputMode="numeric"
                 value={recipientAge}
-                onChange={(e) => setRecipientAge(e.target.value)}
-                maxLength={16}
-                placeholder={isAr ? 'مثال: ٢٥' : 'e.g., 25'}
-                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-sm focus:outline-none focus:border-[#C83E5B]"
+                onChange={(e) => setRecipientAge(sanitizeAgeInput(e.target.value))}
+                maxLength={3}
+                placeholder={isAr ? 'مثال: 25 (اتركه فارغاً للإخفاء)' : 'e.g., 25 (optional)'}
+                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-sm font-mono-tabular focus:outline-none focus:border-[#C83E5B]"
               />
+              {validAgePreview !== null && (
+                <p className="text-[11px] text-stone-500 mt-1">
+                  {validAgePreview <= 20
+                    ? isAr
+                      ? `سيظهر على الكعكة ${formatAgeNumber(validAgePreview, lang)} شمعة مضيئة`
+                      : `${validAgePreview} individual candles will glow on the cake`
+                    : isAr
+                    ? `ستظهر شموع أرقام ثلاثية الأبعاد (${formatAgeNumber(validAgePreview, lang)})`
+                    : `3D numeral candles (${validAgePreview}) will adorn the cake`}
+                </p>
+              )}
             </div>
 
             <div>

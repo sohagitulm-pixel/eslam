@@ -2,10 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
+  BookOpen,
   Check,
   Copy,
   Eye,
   EyeOff,
+  Flame,
   Monitor,
   Plus,
   Redo2,
@@ -17,15 +19,29 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { PRESET_SYNTH_TRACKS } from '../audio/AudioManager';
+import { BirthdayBookViewer } from '../components/book/BirthdayBookViewer';
 import { Birthday3DStage } from '../components/three/Birthday3DStage';
+import { BirthdayBook3D } from '../components/three/BirthdayBook3D';
 import { useApp } from '../context/AppContext';
-import { BIRTHDAY_TEMPLATES, buildExperienceFromTemplate } from '../data/templates';
+import {
+  BIRTHDAY_TEMPLATES,
+  buildExperienceFromTemplate,
+  CURATED_BOOK_PALETTES,
+} from '../data/templates';
 import {
   getExperienceById,
   saveExperience,
   saveFutureLetterSecret,
 } from '../services/firestoreService';
-import { BirthdayExperience, CakeDesign } from '../types/birthday';
+import {
+  BirthdayExperience,
+  BodyFontOption,
+  CakeDesign,
+  CandleMode,
+  CandleStyle,
+  HeadingFontOption,
+} from '../types/birthday';
+import { sanitizeAgeInput } from '../utils/ageUtils';
 import {
   compressImageFile,
   hashPasscode,
@@ -33,6 +49,7 @@ import {
 } from '../utils/proceduralArt';
 
 type BuilderTab = 'sections' | 'design' | 'media' | 'games' | 'audio' | 'publish';
+type PreviewStageTab = 'book' | 'cake' | 'pages';
 
 export const AdvancedBuilderPage: React.FC<{ experienceId: string }> = ({
   experienceId,
@@ -45,6 +62,7 @@ export const AdvancedBuilderPage: React.FC<{ experienceId: string }> = ({
   const [future, setFuture] = useState<BirthdayExperience[]>([]);
   const [tab, setTab] = useState<BuilderTab>('sections');
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
+  const [previewStage, setPreviewStage] = useState<PreviewStageTab>('cake');
   const [savingState, setSavingState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
@@ -349,7 +367,57 @@ export const AdvancedBuilderPage: React.FC<{ experienceId: string }> = ({
           <div className="p-5 overflow-y-auto space-y-5 max-h-[calc(100vh-180px)]">
             {tab === 'sections' && (
               <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      {t.creator.recipientName}
+                    </label>
+                    <input
+                      type="text"
+                      value={exp.recipientName}
+                      onChange={(e) =>
+                        commitChange((prev) => ({ ...prev, recipientName: e.target.value }))
+                      }
+                      className="w-full px-3.5 py-2 rounded-xl border border-stone-200 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      {t.creator.recipientAge} (1–120)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={3}
+                      value={exp.recipientAge || ''}
+                      placeholder={isAr ? 'مثال: 25' : 'e.g., 25'}
+                      onChange={(e) =>
+                        commitChange((prev) => ({
+                          ...prev,
+                          recipientAge: sanitizeAgeInput(e.target.value),
+                        }))
+                      }
+                      className="w-full px-3.5 py-2 rounded-xl border border-stone-200 text-sm font-mono-tabular"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-3">
+                  <label className="block text-xs font-semibold text-stone-700">
+                    {t.book.bookTitleLabel}
+                  </label>
+                  <input
+                    type="text"
+                    value={exp.themeConfig.bookTitle || ''}
+                    placeholder={isAr ? `كتاب ذكريات ${exp.recipientName}` : `${exp.recipientName}'s Birthday Book`}
+                    onChange={(e) =>
+                      commitChange((prev) => ({
+                        ...prev,
+                        themeConfig: { ...prev.themeConfig, bookTitle: e.target.value },
+                      }))
+                    }
+                    className="w-full px-3.5 py-2 rounded-xl border border-stone-200 text-sm"
+                  />
                   <label className="block text-xs font-semibold text-stone-700">
                     {t.creator.headline}
                   </label>
@@ -436,8 +504,55 @@ export const AdvancedBuilderPage: React.FC<{ experienceId: string }> = ({
 
             {tab === 'design' && (
               <div className="space-y-5">
+                {/* Curated 6 Book Palettes */}
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-2">
+                    {t.book.curatedPalettesLabel}
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {CURATED_BOOK_PALETTES.map((cp) => {
+                      const active = exp.themeConfig.bookStyle === cp.key;
+                      return (
+                        <button
+                          key={cp.key}
+                          type="button"
+                          onClick={() =>
+                            commitChange((prev) => ({
+                              ...prev,
+                              themeConfig: {
+                                ...prev.themeConfig,
+                                bookStyle: cp.key,
+                                palette: { ...cp.palette },
+                                bookCoverColor: cp.bookCoverColor,
+                                paperColor: cp.paperColor,
+                                cakeDesign: cp.cakeDesign,
+                                cakeColors: { ...cp.cakeColors },
+                                candleStyle: cp.candleStyle,
+                              },
+                            }))
+                          }
+                          className={`p-2.5 rounded-xl border text-start cursor-pointer transition-colors ${
+                            active ? 'border-[#C83E5B] ring-1 ring-[#C83E5B]' : 'border-stone-200 hover:border-stone-300'
+                          }`}
+                          style={{ backgroundColor: cp.palette.bg }}
+                        >
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cp.bookCoverColor }} />
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cp.palette.primary }} />
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cp.palette.accent }} />
+                          </div>
+                          <p className="text-[11px] font-semibold truncate" style={{ color: cp.palette.text }}>
+                            {isAr ? cp.nameAr : cp.nameEn}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 15 Templates Switcher */}
+                <div>
+                  <label className="block text-xs font-semibold text-stone-700 mb-1.5">
                     {t.creator.preferredDesign}
                   </label>
                   <select
@@ -452,6 +567,9 @@ export const AdvancedBuilderPage: React.FC<{ experienceId: string }> = ({
                           ...prev.themeConfig,
                           palette: { ...tpl.palette },
                           cakeDesign: tpl.cakeDesign,
+                          bookCoverColor: tpl.bookCoverColor || tpl.palette.primary,
+                          paperColor: tpl.paperColor || (tpl.palette.dark ? tpl.palette.surface : '#FCF8F0'),
+                          candleStyle: tpl.candleStyle || 'classic-ivory',
                         },
                         effectsConfig: { ...tpl.effectsConfig },
                       }));
@@ -466,9 +584,38 @@ export const AdvancedBuilderPage: React.FC<{ experienceId: string }> = ({
                   </select>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                {/* Book & Page Colors */}
+                <div className="grid grid-cols-5 gap-2">
                   <div>
-                    <label className="block text-[11px] text-stone-600 mb-1">Primary</label>
+                    <label className="block text-[10px] text-stone-600 mb-1 truncate">{t.book.bookCoverColorLabel}</label>
+                    <input
+                      type="color"
+                      value={exp.themeConfig.bookCoverColor || palette.primary}
+                      onChange={(e) =>
+                        commitChange((prev) => ({
+                          ...prev,
+                          themeConfig: { ...prev.themeConfig, bookCoverColor: e.target.value },
+                        }))
+                      }
+                      className="w-full h-9 rounded-lg border border-stone-200 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-stone-600 mb-1 truncate">{t.book.paperColorLabel}</label>
+                    <input
+                      type="color"
+                      value={exp.themeConfig.paperColor || '#FCF8F0'}
+                      onChange={(e) =>
+                        commitChange((prev) => ({
+                          ...prev,
+                          themeConfig: { ...prev.themeConfig, paperColor: e.target.value },
+                        }))
+                      }
+                      className="w-full h-9 rounded-lg border border-stone-200 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-stone-600 mb-1 truncate">Primary</label>
                     <input
                       type="color"
                       value={palette.primary}
@@ -485,16 +632,16 @@ export const AdvancedBuilderPage: React.FC<{ experienceId: string }> = ({
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-stone-600 mb-1">Secondary</label>
+                    <label className="block text-[10px] text-stone-600 mb-1 truncate">Accent</label>
                     <input
                       type="color"
-                      value={palette.secondary}
+                      value={palette.accent}
                       onChange={(e) =>
                         commitChange((prev) => ({
                           ...prev,
                           themeConfig: {
                             ...prev.themeConfig,
-                            palette: { ...prev.themeConfig.palette, secondary: e.target.value },
+                            palette: { ...prev.themeConfig.palette, accent: e.target.value },
                           },
                         }))
                       }
@@ -502,7 +649,7 @@ export const AdvancedBuilderPage: React.FC<{ experienceId: string }> = ({
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-stone-600 mb-1">Background</label>
+                    <label className="block text-[10px] text-stone-600 mb-1 truncate">Page BG</label>
                     <input
                       type="color"
                       value={palette.bg}
@@ -520,33 +667,207 @@ export const AdvancedBuilderPage: React.FC<{ experienceId: string }> = ({
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1.5">
-                    {t.builder.cakeStyle}
-                  </label>
-                  <select
-                    value={exp.themeConfig.cakeDesign}
-                    onChange={(e) =>
-                      commitChange((prev) => ({
-                        ...prev,
-                        themeConfig: {
-                          ...prev.themeConfig,
-                          cakeDesign: e.target.value as CakeDesign,
-                        },
-                      }))
-                    }
-                    className="w-full px-3.5 py-2 rounded-xl border border-stone-200 text-sm bg-white"
-                  >
-                    <option value="rose-garden">Rose Garden</option>
-                    <option value="royal-crown">Royal Crown</option>
-                    <option value="classic-tier">Classic Tier</option>
-                    <option value="pastel-cloud">Pastel Cloud</option>
-                    <option value="neon-party">Neon Party</option>
-                  </select>
+                {/* Typography Pair */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      {t.book.headingFontLabel}
+                    </label>
+                    <select
+                      value={exp.themeConfig.headingFont || 'cormorant'}
+                      onChange={(e) =>
+                        commitChange((prev) => ({
+                          ...prev,
+                          themeConfig: {
+                            ...prev.themeConfig,
+                            headingFont: e.target.value as HeadingFontOption,
+                          },
+                        }))
+                      }
+                      className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs bg-white"
+                    >
+                      <option value="cormorant">Cormorant Garamond</option>
+                      <option value="playfair">Playfair Display</option>
+                      <option value="jakarta">Plus Jakarta Sans</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      {t.book.bodyFontLabel}
+                    </label>
+                    <select
+                      value={exp.themeConfig.bodyFont || 'jakarta'}
+                      onChange={(e) =>
+                        commitChange((prev) => ({
+                          ...prev,
+                          themeConfig: {
+                            ...prev.themeConfig,
+                            bodyFont: e.target.value as BodyFontOption,
+                          },
+                        }))
+                      }
+                      className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs bg-white"
+                    >
+                      <option value="jakarta">Plus Jakarta Sans</option>
+                      <option value="lora">Lora Editorial</option>
+                      <option value="cairo">Cairo Arabic/Sans</option>
+                    </select>
+                  </div>
                 </div>
 
+                {/* Cake Design & Colors */}
                 <div className="pt-3 border-t border-stone-200 space-y-3">
-                  <p className="text-xs font-semibold text-stone-700">{t.builder.effects3D}</p>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                      {t.builder.cakeStyle}
+                    </label>
+                    <select
+                      value={exp.themeConfig.cakeDesign}
+                      onChange={(e) =>
+                        commitChange((prev) => ({
+                          ...prev,
+                          themeConfig: {
+                            ...prev.themeConfig,
+                            cakeDesign: e.target.value as CakeDesign,
+                          },
+                        }))
+                      }
+                      className="w-full px-3.5 py-2 rounded-xl border border-stone-200 text-sm bg-white"
+                    >
+                      {(Object.keys(t.book.cakeStyles) as CakeDesign[]).map((key) => (
+                        <option key={key} value={key}>
+                          {t.book.cakeStyles[key]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] font-medium text-stone-600 mb-1.5">{t.book.cakeColorsLabel}</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {(['tier1', 'tier2', 'frosting', 'accent'] as const).map((ck) => (
+                        <div key={ck}>
+                          <label className="block text-[10px] text-stone-500 capitalize mb-0.5">{ck}</label>
+                          <input
+                            type="color"
+                            value={exp.themeConfig.cakeColors?.[ck] || (ck === 'accent' ? palette.accent : '#FFFDF9')}
+                            onChange={(e) =>
+                              commitChange((prev) => ({
+                                ...prev,
+                                themeConfig: {
+                                  ...prev.themeConfig,
+                                  cakeColors: {
+                                    tier1: prev.themeConfig.cakeColors?.tier1 || '#FFFDF9',
+                                    tier2: prev.themeConfig.cakeColors?.tier2 || palette.secondary,
+                                    frosting: prev.themeConfig.cakeColors?.frosting || '#FFFFFF',
+                                    accent: prev.themeConfig.cakeColors?.accent || palette.accent,
+                                    [ck]: e.target.value,
+                                  },
+                                },
+                              }))
+                            }
+                            className="w-full h-8 rounded-lg border border-stone-200 cursor-pointer"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Candle Mode & Candle Style */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                        {t.book.candleModeLabel}
+                      </label>
+                      <select
+                        value={exp.themeConfig.candleMode || 'auto'}
+                        onChange={(e) =>
+                          commitChange((prev) => ({
+                            ...prev,
+                            themeConfig: {
+                              ...prev.themeConfig,
+                              candleMode: e.target.value as CandleMode,
+                            },
+                          }))
+                        }
+                        className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs bg-white"
+                      >
+                        {(Object.keys(t.book.candleModes) as CandleMode[]).map((cm) => (
+                          <option key={cm} value={cm}>
+                            {t.book.candleModes[cm]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                        {t.book.candleStyleLabel}
+                      </label>
+                      <select
+                        value={exp.themeConfig.candleStyle || 'classic-ivory'}
+                        onChange={(e) =>
+                          commitChange((prev) => ({
+                            ...prev,
+                            themeConfig: {
+                              ...prev.themeConfig,
+                              candleStyle: e.target.value as CandleStyle,
+                            },
+                          }))
+                        }
+                        className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs bg-white"
+                      >
+                        {(Object.keys(t.book.candleStyles) as CandleStyle[]).map((cs) => (
+                          <option key={cs} value={cs}>
+                            {t.book.candleStyles[cs]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ornaments & 3D Effects */}
+                <div className="pt-3 border-t border-stone-200 space-y-3">
+                  <p className="text-xs font-semibold text-stone-700">{t.book.decorationsLabel}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['corners', 'stars', 'florals', 'ribbons'] as const).map((dk) => {
+                      const currentDec = exp.themeConfig.decorations || {
+                        corners: true,
+                        stars: true,
+                        florals: true,
+                        ribbons: true,
+                      };
+                      return (
+                        <label key={dk} className="flex items-center gap-2 text-xs text-stone-700 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={currentDec[dk]}
+                            onChange={(e) =>
+                              commitChange((prev) => ({
+                                ...prev,
+                                themeConfig: {
+                                  ...prev.themeConfig,
+                                  decorations: {
+                                    ...(prev.themeConfig.decorations || {
+                                      corners: true,
+                                      stars: true,
+                                      florals: true,
+                                      ribbons: true,
+                                    }),
+                                    [dk]: e.target.checked,
+                                  },
+                                },
+                              }))
+                            }
+                            className="accent-[#C83E5B]"
+                          />
+                          <span className="capitalize">{dk}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  <p className="text-xs font-semibold text-stone-700 pt-2">{t.builder.effects3D}</p>
                   <div className="grid grid-cols-2 gap-2">
                     {(
                       ['roses', 'petals', 'balloons', 'hearts', 'fireworks', 'confetti', 'sparkles'] as const
@@ -999,41 +1320,112 @@ export const AdvancedBuilderPage: React.FC<{ experienceId: string }> = ({
         </div>
 
         {/* Right Live Preview Canvas */}
-        <div className="lg:col-span-7 p-6 flex items-start justify-center bg-stone-100/70">
+        <div className="lg:col-span-7 p-4 sm:p-6 flex flex-col items-center gap-4 bg-stone-100/70">
+          {/* Preview Stage Switcher */}
+          <div className="flex items-center gap-1 p-1 bg-white rounded-xl border border-stone-200 shadow-xs">
+            <button
+              type="button"
+              onClick={() => setPreviewStage('cake')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer ${
+                previewStage === 'cake' ? 'bg-[#C83E5B] text-white' : 'text-stone-600 hover:text-stone-950'
+              }`}
+            >
+              <Flame className="w-3.5 h-3.5" />
+              <span>{isAr ? 'الكعكة والشموع' : '3D Cake & Candles'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewStage('book')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer ${
+                previewStage === 'book' ? 'bg-[#C83E5B] text-white' : 'text-stone-600 hover:text-stone-950'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>{isAr ? 'غلاف الكتاب 3D' : '3D Book Cover'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewStage('pages')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer ${
+                previewStage === 'pages' ? 'bg-[#C83E5B] text-white' : 'text-stone-600 hover:text-stone-950'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>{isAr ? 'صفحات الكتاب' : 'Open Book Pages'}</span>
+            </button>
+          </div>
+
           <div
             className={`transition-all duration-300 rounded-2xl border border-stone-200 overflow-hidden shadow-sm ${
               previewMode === 'mobile' ? 'w-[375px]' : 'w-full max-w-4xl'
             }`}
             style={{ backgroundColor: palette.bg, color: palette.text }}
           >
-            <div className="p-6 space-y-6">
-              <div className="text-center space-y-2">
-                <p className="text-xs font-medium" style={{ color: palette.primary }}>
-                  {exp.title}
-                </p>
-                <h2 className="font-display text-3xl font-semibold">
-                  {exp.themeConfig.headlineText}
-                </h2>
-                <p className="text-xs max-w-md mx-auto leading-relaxed" style={{ color: palette.muted }}>
-                  {exp.themeConfig.introMessage}
-                </p>
-              </div>
-
-              <Birthday3DStage
-                mode="cake"
-                cakeDesign={exp.themeConfig.cakeDesign}
-                primaryColor={palette.primary}
-                secondaryColor={palette.secondary}
-                accentColor={palette.accent}
-                darkBg={palette.dark}
-                bgHex={palette.bg}
-                effects={exp.effectsConfig}
-                recipientName={exp.recipientName}
-                recipientAge={exp.recipientAge}
-                lang={exp.language}
-                heightClass={previewMode === 'mobile' ? 'h-[320px]' : 'h-[380px]'}
+            {previewStage === 'pages' ? (
+              <BirthdayBookViewer
+                experience={exp}
+                viewLang={exp.language}
+                embeddedPreview
+                initialOpen
               />
-            </div>
+            ) : previewStage === 'book' ? (
+              <div className="p-6 space-y-4">
+                <div className="text-center space-y-1">
+                  <p className="text-xs font-medium" style={{ color: palette.primary }}>
+                    {exp.themeConfig.bookTitle || exp.title}
+                  </p>
+                  <h2 className="font-display text-2xl font-semibold">
+                    {exp.themeConfig.headlineText}
+                  </h2>
+                </div>
+                <BirthdayBook3D
+                  recipientName={exp.recipientName}
+                  recipientAge={exp.recipientAge}
+                  bookTitle={exp.themeConfig.bookTitle}
+                  birthdayDate={exp.birthdayDate}
+                  coverColor={exp.themeConfig.bookCoverColor || palette.primary}
+                  paperColor={exp.themeConfig.paperColor || '#FCF8F0'}
+                  accentColor={palette.accent}
+                  darkBg={palette.dark}
+                  bgHex={palette.bg}
+                  lang={exp.language}
+                  decorations={exp.themeConfig.decorations}
+                  heightClass={previewMode === 'mobile' ? 'h-[340px]' : 'h-[420px]'}
+                />
+              </div>
+            ) : (
+              <div className="p-6 space-y-5">
+                <div className="text-center space-y-1.5">
+                  <p className="text-xs font-medium" style={{ color: palette.primary }}>
+                    {exp.title}
+                  </p>
+                  <h2 className="font-display text-3xl font-semibold">
+                    {exp.themeConfig.headlineText}
+                  </h2>
+                  <p className="text-xs max-w-md mx-auto leading-relaxed" style={{ color: palette.muted }}>
+                    {exp.themeConfig.introMessage}
+                  </p>
+                </div>
+
+                <Birthday3DStage
+                  mode="cake"
+                  cakeDesign={exp.themeConfig.cakeDesign}
+                  primaryColor={palette.primary}
+                  secondaryColor={palette.secondary}
+                  accentColor={palette.accent}
+                  cakeColors={exp.themeConfig.cakeColors}
+                  candleMode={exp.themeConfig.candleMode}
+                  candleStyle={exp.themeConfig.candleStyle}
+                  darkBg={palette.dark}
+                  bgHex={palette.bg}
+                  effects={exp.effectsConfig}
+                  recipientName={exp.recipientName}
+                  recipientAge={exp.recipientAge}
+                  lang={exp.language}
+                  heightClass={previewMode === 'mobile' ? 'h-[320px]' : 'h-[400px]'}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

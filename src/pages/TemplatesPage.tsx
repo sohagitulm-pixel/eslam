@@ -69,7 +69,7 @@ export const TemplatesPage: React.FC = () => {
                     {isAr ? tpl.nameAr : tpl.nameEn}
                   </h3>
                   <p className="text-xs" style={{ color: tpl.palette.muted }}>
-                    {tpl.cakeDesign} · {tpl.effectsConfig.roses ? '3D Roses' : '3D Balloons'} ·{' '}
+                    {t.book.cakeStyles[tpl.cakeDesign] || tpl.cakeDesign} · {tpl.effectsConfig.roses ? '3D Roses' : '3D Balloons'} ·{' '}
                     {tpl.effectsConfig.fireworks ? 'Fireworks' : 'Sparkles'}
                   </p>
                 </div>
@@ -129,6 +129,7 @@ export const TemplatesPage: React.FC = () => {
               <Birthday3DStage
                 mode="hero"
                 cakeDesign={previewTpl.cakeDesign}
+                candleStyle={previewTpl.candleStyle}
                 primaryColor={previewTpl.palette.primary}
                 secondaryColor={previewTpl.palette.secondary}
                 accentColor={previewTpl.palette.accent}

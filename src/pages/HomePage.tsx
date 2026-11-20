@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowRight, ChevronDown, Eye, Sparkles } from 'lucide-react';
+import { ArrowRight, BookOpen, ChevronDown, Eye, Flame, Sparkles } from 'lucide-react';
 import { Birthday3DStage } from '../components/three/Birthday3DStage';
+import { BirthdayBook3D } from '../components/three/BirthdayBook3D';
 import { useApp } from '../context/AppContext';
 import { BIRTHDAY_TEMPLATES, SAMPLE_EXPERIENCES } from '../data/templates';
 import { BirthdayTemplate } from '../types/birthday';
@@ -8,6 +9,7 @@ import { BirthdayTemplate } from '../types/birthday';
 export const HomePage: React.FC = () => {
   const { t, lang, navigate } = useApp();
   const [heroCandlesLit, setHeroCandlesLit] = useState(true);
+  const [heroStageView, setHeroStageView] = useState<'book' | 'cake'>('book');
   const [selectedCat, setSelectedCat] = useState<string>('all');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [previewSampleIdx, setPreviewSampleIdx] = useState(0);
@@ -67,20 +69,72 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="lg:col-span-7">
-            <Birthday3DStage
-              mode="hero"
-              cakeDesign="rose-garden"
-              primaryColor="#C83E5B"
-              secondaryColor="#F3B6C2"
-              accentColor="#E9C46A"
-              candlesLit={heroCandlesLit}
-              onBlowCandles={() => setHeroCandlesLit(false)}
-              onRelightCandles={() => setHeroCandlesLit(true)}
-              recipientName={isAr ? 'عيد ميلاد سعيد' : 'Happy Birthday'}
-              lang={lang}
-              heightClass="h-[420px] md:h-[520px]"
-            />
+          <div className="lg:col-span-7 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1 p-1 bg-stone-200/70 rounded-xl w-fit">
+                <button
+                  type="button"
+                  onClick={() => setHeroStageView('book')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer transition-colors ${
+                    heroStageView === 'book'
+                      ? 'bg-white text-stone-950 shadow-xs'
+                      : 'text-stone-600 hover:text-stone-950'
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>{isAr ? 'كتاب الذكريات 3D' : '3D Memory Book'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHeroStageView('cake')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 cursor-pointer transition-colors ${
+                    heroStageView === 'cake'
+                      ? 'bg-white text-stone-950 shadow-xs'
+                      : 'text-stone-600 hover:text-stone-950'
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>{isAr ? 'كعكة عيد الميلاد 3D' : '3D Birthday Cake'}</span>
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate(`/b/${activeSample.id}`)}
+                className="text-xs font-medium text-[#C83E5B] hover:underline cursor-pointer"
+              >
+                {t.book.openBook}
+              </button>
+            </div>
+
+            {heroStageView === 'book' ? (
+              <BirthdayBook3D
+                recipientName={activeSample.recipientName}
+                recipientAge={activeSample.recipientAge}
+                bookTitle={activeSample.themeConfig.bookTitle}
+                birthdayDate={activeSample.birthdayDate}
+                coverColor={activeSample.themeConfig.bookCoverColor || '#7A1F33'}
+                paperColor={activeSample.themeConfig.paperColor || '#FBF7EE'}
+                accentColor="#DFC07C"
+                lang={lang}
+                onOpenClick={() => navigate(`/b/${activeSample.id}`)}
+                heightClass="h-[380px] md:h-[470px]"
+              />
+            ) : (
+              <Birthday3DStage
+                mode="hero"
+                cakeDesign="luxury-tiered"
+                primaryColor="#C83E5B"
+                secondaryColor="#F3B6C2"
+                accentColor="#E9C46A"
+                candlesLit={heroCandlesLit}
+                onBlowCandles={() => setHeroCandlesLit(false)}
+                onRelightCandles={() => setHeroCandlesLit(true)}
+                recipientName={activeSample.recipientName}
+                recipientAge={activeSample.recipientAge}
+                lang={lang}
+                heightClass="h-[380px] md:h-[470px]"
+              />
+            )}
           </div>
         </div>
       </section>

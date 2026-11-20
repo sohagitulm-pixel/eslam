@@ -1,11 +1,151 @@
 import {
   BirthdayExperience,
   BirthdayTemplate,
+  BookPaletteKey,
+  CakeColorsConfig,
+  CakeDesign,
+  CandleStyle,
   Language,
   RelationshipType,
   SectionConfig,
+  ThemePalette,
 } from '../types/birthday';
 import { generateProceduralArtwork } from '../utils/proceduralArt';
+
+export interface CuratedBookPalette {
+  key: BookPaletteKey;
+  nameEn: string;
+  nameAr: string;
+  palette: ThemePalette;
+  bookCoverColor: string;
+  paperColor: string;
+  cakeDesign: CakeDesign;
+  cakeColors: CakeColorsConfig;
+  candleStyle: CandleStyle;
+}
+
+export const CURATED_BOOK_PALETTES: CuratedBookPalette[] = [
+  {
+    key: 'luxury',
+    nameEn: 'Luxury Birthday',
+    nameAr: 'عيد ميلاد فاخر',
+    palette: {
+      bg: '#FAF5EC',
+      surface: '#FFFDF9',
+      text: '#26171C',
+      muted: '#745D54',
+      primary: '#7A1F33',
+      secondary: '#DFC59B',
+      accent: '#C99B3B',
+      dark: false,
+    },
+    bookCoverColor: '#5B1626',
+    paperColor: '#FBF7EE',
+    cakeDesign: 'luxury-tiered',
+    cakeColors: { tier1: '#FFFDF7', tier2: '#F2E5D0', frosting: '#FFF8ED', accent: '#C99B3B' },
+    candleStyle: 'gold-metallic',
+  },
+  {
+    key: 'romantic',
+    nameEn: 'Romantic Birthday',
+    nameAr: 'عيد ميلاد رومانسي',
+    palette: {
+      bg: '#FDF6F7',
+      surface: '#FFFFFF',
+      text: '#2E1821',
+      muted: '#825F6C',
+      primary: '#C75B7A',
+      secondary: '#F3C5CF',
+      accent: '#D49A7A',
+      dark: false,
+    },
+    bookCoverColor: '#8B3A54',
+    paperColor: '#FFF9FA',
+    cakeDesign: 'rose-garden',
+    cakeColors: { tier1: '#FFF8F9', tier2: '#F6D7DF', frosting: '#FFFDFD', accent: '#C75B7A' },
+    candleStyle: 'rose-blush',
+  },
+  {
+    key: 'magical',
+    nameEn: 'Magical Birthday',
+    nameAr: 'عيد ميلاد ساحر',
+    palette: {
+      bg: '#151026',
+      surface: '#211938',
+      text: '#F7F3FF',
+      muted: '#B6A8D9',
+      primary: '#A47AF4',
+      secondary: '#D8BFFF',
+      accent: '#E9C46A',
+      dark: true,
+    },
+    bookCoverColor: '#241842',
+    paperColor: '#251D3D',
+    cakeDesign: 'black-gold',
+    cakeColors: { tier1: '#231A3B', tier2: '#35285A', frosting: '#E5DAFA', accent: '#E9C46A' },
+    candleStyle: 'gold-metallic',
+  },
+  {
+    key: 'floral',
+    nameEn: 'Floral Birthday',
+    nameAr: 'عيد ميلاد زهري',
+    palette: {
+      bg: '#F8F9F4',
+      surface: '#FFFFFF',
+      text: '#222B23',
+      muted: '#667367',
+      primary: '#5C8265',
+      secondary: '#E8B8C1',
+      accent: '#C98A95',
+      dark: false,
+    },
+    bookCoverColor: '#3D5E46',
+    paperColor: '#FBFBF5',
+    cakeDesign: 'rose-garden',
+    cakeColors: { tier1: '#FCFDF8', tier2: '#E4EDE2', frosting: '#FFFFFF', accent: '#D88D9B' },
+    candleStyle: 'classic-ivory',
+  },
+  {
+    key: 'minimal',
+    nameEn: 'Modern Minimal',
+    nameAr: 'بساطة عصرية أنيقة',
+    palette: {
+      bg: '#F7F6F3',
+      surface: '#FFFFFF',
+      text: '#1C1C1F',
+      muted: '#6E6D72',
+      primary: '#2A2A30',
+      secondary: '#DFD8CC',
+      accent: '#B89550',
+      dark: false,
+    },
+    bookCoverColor: '#2A2A30',
+    paperColor: '#FAF9F6',
+    cakeDesign: 'white-elegant',
+    cakeColors: { tier1: '#FFFFFF', tier2: '#F2EFE9', frosting: '#FFFFFF', accent: '#B89550' },
+    candleStyle: 'classic-ivory',
+  },
+  {
+    key: 'colorful',
+    nameEn: 'Colorful Birthday',
+    nameAr: 'عيد ميلاد مبهج ملون',
+    palette: {
+      bg: '#FFFBF5',
+      surface: '#FFFFFF',
+      text: '#1E2538',
+      muted: '#5F6B85',
+      primary: '#E66B8A',
+      secondary: '#8CC9E6',
+      accent: '#F5C45E',
+      dark: false,
+    },
+    bookCoverColor: '#3E7CB1',
+    paperColor: '#FFFDF8',
+    cakeDesign: 'childrens-colorful',
+    cakeColors: { tier1: '#FFF4E6', tier2: '#D8F1FA', frosting: '#FFFDF9', accent: '#F28482' },
+    candleStyle: 'pastel-spiral',
+  },
+];
 
 export const BIRTHDAY_TEMPLATES: BirthdayTemplate[] = [
   {
@@ -17,6 +157,10 @@ export const BIRTHDAY_TEMPLATES: BirthdayTemplate[] = [
     descriptionAr: 'ورود وردية متفتحة، بتلات متساقطة، كعكة لؤلؤية، وإضاءة دافئة ساحرة.',
     category: 'romantic',
     cakeDesign: 'rose-garden',
+    bookStyle: 'romantic',
+    bookCoverColor: '#8B3A54',
+    paperColor: '#FFF9FA',
+    candleStyle: 'rose-blush',
     palette: {
       bg: '#FDF7F8',
       surface: '#FFFFFF',
@@ -641,6 +785,27 @@ export function buildExperienceFromTemplate(params: {
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + 30);
 
+  const matchedBookPalette =
+    CURATED_BOOK_PALETTES.find((cp) => cp.key === template.bookStyle) ||
+    (template.category === 'luxury'
+      ? CURATED_BOOK_PALETTES[0]
+      : template.category === 'night'
+      ? CURATED_BOOK_PALETTES[2]
+      : template.category === 'floral'
+      ? CURATED_BOOK_PALETTES[3]
+      : template.category === 'editorial'
+      ? CURATED_BOOK_PALETTES[4]
+      : template.category === 'playful'
+      ? CURATED_BOOK_PALETTES[5]
+      : CURATED_BOOK_PALETTES[1]);
+
+  const effectiveCoverColor =
+    template.bookCoverColor ||
+    (template.palette.dark ? '#1F1B2E' : template.palette.primary);
+  const effectivePaperColor =
+    template.paperColor ||
+    (template.palette.dark ? template.palette.surface : '#FCF8F1');
+
   return {
     id,
     ownerId,
@@ -663,16 +828,36 @@ export function buildExperienceFromTemplate(params: {
       cakeDesign: template.cakeDesign,
       fontStyle: template.category === 'playful' ? 'playful' : template.category === 'night' ? 'modern' : 'editorial',
       headlineText: isAr
-        ? `كل عام وأنتِ بألف خير يا ${recipientName}`
-        : `Celebrating ${recipientName}'s Birthday`,
+        ? `كل عام وأنت بألف خير يا ${recipientName}`
+        : `Happy Birthday, ${recipientName}`,
       introMessage:
         message ||
         (isAr
-          ? `صمّمنا هذه الصفحة ثلاثية الأبعاد خصيصاً للاحتفال بعيد ميلادك، مليئة بالذكريات والموسيقى والأمنيات الدافئة.`
-          : `We crafted this interactive 3D celebration just for your birthday — filled with shared memories, favorite songs, surprises, and wishes for the year ahead.`),
+          ? `صمّمنا كتاب الذكريات التفاعلي ثلاثي الأبعاد خصيصاً للاحتفال بعيد ميلادك، مليئاً بالذكريات والموسيقى والأمنيات الدافئة.`
+          : `We crafted this interactive 3D birthday memory book just for your celebration — filled with cherished memories, favorite music, surprises, and wishes for the year ahead.`),
       cakeWishPrompt: isAr
         ? 'أغمض عينيك وتمنَّ أمنية جميلة قبل إطفاء الشموع.'
-        : 'Close your eyes, make a wish, and blow out the candles.',
+        : 'Close your eyes, make a heartfelt wish, and blow out the candles.',
+      bookTitle: isAr ? `كتاب ذكريات ${recipientName}` : `${recipientName}'s Birthday Book`,
+      bookCoverColor: effectiveCoverColor,
+      paperColor: effectivePaperColor,
+      bookStyle: matchedBookPalette.key,
+      candleMode: 'auto',
+      candleStyle: template.candleStyle || matchedBookPalette.candleStyle,
+      cakeColors: {
+        tier1: template.palette.dark ? '#231F33' : '#FFFDF9',
+        tier2: template.palette.secondary,
+        frosting: template.palette.dark ? '#F5EFFA' : '#FFFFFF',
+        accent: template.palette.accent,
+      },
+      headingFont: template.category === 'playful' ? 'jakarta' : 'cormorant',
+      bodyFont: isAr ? 'cairo' : 'jakarta',
+      decorations: {
+        corners: true,
+        stars: template.category === 'night' || template.category === 'playful',
+        florals: template.category === 'romantic' || template.category === 'floral' || template.category === 'luxury',
+        ribbons: true,
+      },
     },
     effectsConfig: { ...template.effectsConfig },
     audioConfig: {

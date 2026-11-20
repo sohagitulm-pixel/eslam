@@ -29,7 +29,46 @@ export type SectionType =
 
 export type VisibilityType = 'public' | 'unlisted' | 'private';
 
-export type CakeDesign = 'classic-tier' | 'royal-crown' | 'rose-garden' | 'neon-party' | 'pastel-cloud';
+export type CakeDesign =
+  | 'classic-tier'
+  | 'royal-crown'
+  | 'rose-garden'
+  | 'neon-party'
+  | 'pastel-cloud'
+  | 'luxury-tiered'
+  | 'chocolate-ganache'
+  | 'white-elegant'
+  | 'childrens-colorful'
+  | 'black-gold';
+
+export type CandleMode = 'auto' | 'individual' | 'numeral';
+
+export type CandleStyle = 'classic-ivory' | 'gold-metallic' | 'pastel-spiral' | 'rose-blush';
+
+export type BookPaletteKey =
+  | 'luxury'
+  | 'romantic'
+  | 'magical'
+  | 'floral'
+  | 'minimal'
+  | 'colorful';
+
+export type HeadingFontOption = 'cormorant' | 'playfair' | 'jakarta';
+export type BodyFontOption = 'jakarta' | 'lora' | 'cairo';
+
+export interface DecorationsConfig {
+  corners: boolean;
+  stars: boolean;
+  florals: boolean;
+  ribbons: boolean;
+}
+
+export interface CakeColorsConfig {
+  tier1: string;
+  tier2: string;
+  frosting: string;
+  accent: string;
+}
 
 export type GiftBoxStyle = 'velvet-crimson' | 'ivory-gold' | 'lavender-silk' | 'midnight-star';
 
@@ -71,6 +110,10 @@ export interface BirthdayTemplate {
   category: 'romantic' | 'luxury' | 'playful' | 'floral' | 'editorial' | 'night';
   cakeDesign: CakeDesign;
   palette: ThemePalette;
+  bookStyle?: BookPaletteKey;
+  bookCoverColor?: string;
+  paperColor?: string;
+  candleStyle?: CandleStyle;
   effectsConfig: EffectsConfig;
   active: boolean;
   featured: boolean;
@@ -174,6 +217,17 @@ export interface ThemeConfig {
   headlineText: string;
   introMessage: string;
   cakeWishPrompt: string;
+  // Luxury 3D Birthday Memory Book & Customization fields (stored cleanly inside Firestore themeConfig map)
+  bookTitle?: string;
+  bookCoverColor?: string;
+  paperColor?: string;
+  bookStyle?: BookPaletteKey;
+  candleMode?: CandleMode;
+  candleStyle?: CandleStyle;
+  cakeColors?: CakeColorsConfig;
+  headingFont?: HeadingFontOption;
+  bodyFont?: BodyFontOption;
+  decorations?: DecorationsConfig;
 }
 
 export interface BirthdayExperience {
